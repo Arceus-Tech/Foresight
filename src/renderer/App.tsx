@@ -1,49 +1,40 @@
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
-import icon from '../../assets/icon.svg';
 import './App.css';
-
-function Hello() {
-  return (
-    <div>
-      <div className="Hello">
-        <img width="200" alt="icon" src={icon} />
-      </div>
-      <h1>Foresight</h1>
-      <div className="Hello">
-        <a
-          href="https://electron-react-boilerplate.js.org/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <button type="button">
-            <span role="img" aria-label="books">
-              📚
-            </span>
-            Read our docs
-          </button>
-        </a>
-        <a
-          href="https://github.com/sponsors/electron-react-boilerplate"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <button type="button">
-            <span role="img" aria-label="folded hands">
-              🙏
-            </span>
-            Donate
-          </button>
-        </a>
-      </div>
-    </div>
-  );
-}
+import 'tailwindcss/tailwind.css';
+import '@xyflow/react/dist/style.css';
+import MainLayout from './layout/main';
+import Dashboard from './dashboard';
+import TaggingDetailedReport from './tagging_detailed_report/index';
+import HierarchyFlow from './hierarchy-flow/HierachyFlow';
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Hello />} />
+        <Route
+          path="/"
+          element={
+            <MainLayout>
+              <Dashboard />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/historical-report"
+          element={
+            <MainLayout>
+              <TaggingDetailedReport />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/hierarchy-flow"
+          element={
+            <MainLayout>
+              <HierarchyFlow />
+            </MainLayout>
+          }
+        />
       </Routes>
     </Router>
   );
