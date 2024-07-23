@@ -1,6 +1,6 @@
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -15,6 +15,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '../components/ui/chart';
+
+import { fetchData } from '../lib/get_task_result';
+import { useToast } from '../components/ui/use-toast';
 
 const chartConfig = {
   callBack: {
@@ -55,24 +58,46 @@ const getCurrentMonthName = () => {
 
 export default function AreaChartDash() {
   const [chartData, setChartData] = useState([]);
+  const [chartDataTwo, setChartDataTwo] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [trendingUpValue, setTrendingUpValue] = useState(0);
   const [monthRange, setMonthRange] = useState({ start: '', end: '' });
+  const { toast } = useToast();
+  const isFetchingRef = useRef(false);
+
+  const handleFetchError = (error: Error) => {
+    toast({
+      variant: 'destructive',
+      title: 'Uh oh! Something went wrong.',
+      description: error.message,
+    });
+  };
+
+  const fetchMonthlyStats = async () => {
+    try {
+      await fetchData(
+        `${process.env.CRM_URL}/api/monthly-status/`,
+        setChartDataTwo,
+        handleFetchError,
+        {},
+      );
+    } catch (error) {
+      throw new Error('Error fetching top performers data');
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData2 = async () => {
       try {
-        const response = await fetch(
-          'http://127.0.0.1:8000/api/monthly-status/?dep_id=1',
-        );
-        const data = await response.json();
-        const transformedData = data.map(
+        const transformedData = chartDataTwo.map(
           (item: { month: any; callBack: any; followUp: any }) => ({
             month: item.month,
             callBack: item.callBack || 0,
             followUp: item.followUp || 0,
           }),
         );
+
+        console.log('transformedData:', transformedData);
         setChartData(transformedData);
         // Calculate trending up percentage
         const currentMonthIndex = transformedData.findIndex(
@@ -106,8 +131,27 @@ export default function AreaChartDash() {
         setIsLoading(false);
       }
     };
+    fetchData2();
+  }, [chartDataTwo]);
 
-    fetchData();
+  useEffect(() => {
+    const fetchOperations = async () => {
+      if (isFetchingRef.current) {
+        return;
+      }
+      isFetchingRef.current = true;
+      try {
+        await Promise.all([fetchMonthlyStats()]);
+        console.log('Completed fetchTopPerformers and fetchLatestStats');
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        isFetchingRef.current = false;
+      }
+    };
+
+    fetchOperations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isLoading) {

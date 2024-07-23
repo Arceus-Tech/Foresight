@@ -11,6 +11,7 @@ import {
 } from '../components/ui/dropdown-menu';
 import { Button } from '../components/ui/button';
 import NavigationMenuBase from './nav-menu';
+import Toaster from '../components/ui/toaster';
 
 export default function main({ children }: { children: React.ReactNode }) {
   return (
@@ -40,6 +41,7 @@ export default function main({ children }: { children: React.ReactNode }) {
               <DropdownMenuItem inset={false}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Toaster />
         </div>
       </header>
 

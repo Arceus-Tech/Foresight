@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowUpRight,
@@ -27,6 +27,9 @@ import {
   TableRow,
 } from '../components/ui/table';
 import AreaChartDash from './AreaChartDash';
+import getTaskResult from '../lib/get_task_result';
+import Skeleton from '../components/ui/skeleton';
+import { useToast } from '../components/ui/use-toast';
 
 interface DataSummary {
   current: Record<string, unknown>;
@@ -44,6 +47,9 @@ interface TopPerformer {
   followUp: number;
   callBack: number;
   converted: number;
+}
+interface ExtendedResponse extends Response {
+  data: any; // Specify the correct type for `data` instead of `any` if possible
 }
 
 interface RecentDeposit {
@@ -117,27 +123,122 @@ function calculatePercentageChange(
   return changeString;
 }
 
+export async function attemptFetch<T>(
+  url: string,
+  setState: React.Dispatch<React.SetStateAction<T>>,
+  handleError: (error: Error) => void,
+  queryParams: Record<string, any>,
+  retriesLeft: number,
+): Promise<void> {
+  try {
+    const queryString = new URLSearchParams(queryParams).toString();
+    const response = await fetch(`${url}?${queryString}`).then((res) => {
+      if (!res.ok) {
+        throw new Error(`Network response was not ok, status: ${res.status}`);
+      }
+      return res.json();
+    });
+
+    if (response.task_id === undefined) {
+      handleError(new Error('Task ID not found in response'));
+      return;
+    }
+
+    const newData = (await getTaskResult(response.task_id)) as ExtendedResponse;
+    setState(newData.data);
+  } catch (error: any) {
+    if (retriesLeft > 1) {
+      // Recursively attempt fetch again, decrementing retriesLeft
+      await attemptFetch(
+        url,
+        setState,
+        handleError,
+        queryParams,
+        retriesLeft - 1,
+      );
+    } else {
+      // No retries left, handle error
+      handleError(new Error(`Error fetching data: ${error.message}`));
+    }
+  }
+}
+
+export async function fetchData<T>(
+  url: string,
+  setState: React.Dispatch<React.SetStateAction<T>>,
+  handleError: (error: Error) => void,
+  queryParams: Record<string, any> = {},
+  maxRetries: number = 3, // Default maximum retries to 3
+): Promise<void> {
+  await attemptFetch(url, setState, handleError, queryParams, maxRetries);
+}
 export default function Dashboard() {
   const [dataSummary, setDataSummary] = useState<DataSummary | null>(null);
   const [topPerformers, setTopPerformers] = useState<TopPerformer[]>();
   const [reacentDeposits, setRecentDeposits] = useState<RecentDeposit[]>();
+  const { toast } = useToast();
+
+  const handleFetchError = (error: Error) => {
+    toast({
+      variant: 'destructive',
+      title: 'Uh oh! Something went wrong.',
+      description: error.message,
+    });
+  };
+
+  const fetchTopPerformers = async (count: number) => {
+    try {
+      await fetchData(
+        `${process.env.CRM_URL}/api/performer/`,
+        setTopPerformers,
+        handleFetchError,
+        {
+          count,
+        },
+      );
+    } catch (error) {
+      throw new Error('Error fetching top performers data');
+    }
+  };
+
+  const fetchLatestStats = async (count: number) => {
+    try {
+      await fetchData(
+        `${process.env.CRM_URL}/api/latest-stats/`,
+        setDataSummary,
+        handleFetchError,
+        {
+          count,
+        },
+      );
+    } catch (error) {
+      throw new Error('Error fetching top performers data');
+    }
+  };
+
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/latest-stats/?dep_id=1')
-      .then((response) => response.json())
-      .then((data) => setDataSummary(data))
-      .catch((error) => console.error('Error fetching data:', error));
+    const fetchOperations = async () => {
+      if (isFetchingRef.current) {
+        return;
+      }
+      isFetchingRef.current = true;
+      try {
+        await Promise.all([fetchTopPerformers(5), fetchLatestStats(5)]);
+        console.log('Completed fetchTopPerformers and fetchLatestStats');
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        isFetchingRef.current = false;
+      }
+    };
+
+    fetchOperations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/top-performer/?count=6&dep_id=1')
-      .then((response) => response.json())
-      .then((data) => setTopPerformers(data))
-      .catch((error) => console.error('Error fetching data:', error));
-  }, []);
-
-  useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/recent-running-bonus/')
+    fetch(`${process.env.CRM_URL}/api/recent-running-bonus/`)
       .then((response) => response.json())
       .then((data) => setRecentDeposits(data))
       .catch((error) => console.error('Error fetching data:', error));
@@ -154,13 +255,22 @@ export default function Dashboard() {
             <UserPlus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              +{checkValidity(dataSummary, 'follow up')}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {calculatePercentageChange(dataSummary, 'follow up')} from last
-              month
-            </p>
+            {dataSummary ? (
+              <>
+                <div className="text-2xl font-bold">
+                  {checkValidity(dataSummary, 'follow up')}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {calculatePercentageChange(dataSummary, 'follow up')} from
+                  last from last month
+                </p>
+              </>
+            ) : (
+              <>
+                <Skeleton className="h-6 mt-2 w-20" />
+                <Skeleton className="h-2 mt-2 w-40" />
+              </>
+            )}
           </CardContent>
         </Card>
         <Card x-chunk="dashboard-01-chunk-1">
@@ -171,13 +281,22 @@ export default function Dashboard() {
             <CalendarPlus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              +{checkValidity(dataSummary, 'call back')}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {calculatePercentageChange(dataSummary, 'call back')} from last
-              from last month
-            </p>
+            {dataSummary ? (
+              <>
+                <div className="text-2xl font-bold">
+                  {checkValidity(dataSummary, 'call back')}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {calculatePercentageChange(dataSummary, 'call back')} from
+                  last from last month
+                </p>
+              </>
+            ) : (
+              <>
+                <Skeleton className="h-6 mt-2 w-20" />
+                <Skeleton className="h-2 mt-2 w-40" />
+              </>
+            )}
           </CardContent>
         </Card>
         <Card x-chunk="dashboard-01-chunk-2">
@@ -188,13 +307,22 @@ export default function Dashboard() {
             <Ban className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              +{checkValidity(dataSummary, 'no answer')}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {calculatePercentageChange(dataSummary, 'no answer')} from last
-              from last month
-            </p>
+            {dataSummary ? (
+              <>
+                <div className="text-2xl font-bold">
+                  {checkValidity(dataSummary, 'no answer')}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {calculatePercentageChange(dataSummary, 'no answer')} from
+                  last from last month
+                </p>
+              </>
+            ) : (
+              <>
+                <Skeleton className="h-6 mt-2 w-20" />
+                <Skeleton className="h-2 mt-2 w-40" />
+              </>
+            )}
           </CardContent>
         </Card>
         <Card x-chunk="dashboard-01-chunk-3">
@@ -204,9 +332,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+573</div>
-            <p className="text-xs text-muted-foreground">
-              +201 since last hour
-            </p>
+            <p className="text-xs text-muted-foreground">201 since last hour</p>
           </CardContent>
         </Card>
       </div>
@@ -243,32 +369,75 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topPerformers?.map((performer) => (
-                  <TableRow key={performer.agent.id}>
-                    <TableCell>
-                      <div className="font-medium">{performer.agent.name}</div>
-                      <div className="hidden text-sm text-muted-foreground md:inline">
-                        {performer.agent.email}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden xl:table-cell text-right">
-                      {performer.followUp ? performer.followUp : 0}
-                    </TableCell>
-                    <TableCell className="hidden xl:table-cell text-right">
-                      {performer.callBack ? performer.callBack : 0}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {performer.converted ? performer.converted : 0}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {performer.agent.target_mode === 'count' &&
-                      performer.converted
-                        ? (performer.converted / performer.agent.target) * 100
-                        : 0}{' '}
-                      %
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {topPerformers ? (
+                  topPerformers?.map((performer) => (
+                    <TableRow key={performer.agent.id}>
+                      <TableCell>
+                        <div className="font-medium">
+                          {performer.agent.name}
+                        </div>
+                        <div className="hidden text-sm text-muted-foreground md:inline">
+                          {performer.agent.email}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell text-right">
+                        {performer.followUp ? performer.followUp : 0}
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell text-right">
+                        {performer.callBack ? performer.callBack : 0}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {performer.converted ? performer.converted : 0}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {performer.agent.target_mode === 'count' &&
+                        performer.converted
+                          ? (performer.converted / performer.agent.target) * 100
+                          : 0}{' '}
+                        %
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <>
+                    <TableRow>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-3 mt-3 w-40" />
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell text-right">
+                        <Skeleton className="h-3 w-full" />
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell text-right">
+                        <Skeleton className="h-3 w-full" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Skeleton className="h-3 w-full" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Skeleton className="h-3 w-full" />
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-3 mt-3 w-40" />
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell text-right">
+                        <Skeleton className="h-3 w-full" />
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell text-right">
+                        <Skeleton className="h-3 w-full" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Skeleton className="h-3 w-full" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Skeleton className="h-3 w-full" />
+                      </TableCell>
+                    </TableRow>
+                  </>
+                )}
               </TableBody>
             </Table>
           </CardContent>
