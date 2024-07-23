@@ -40,7 +40,7 @@
     "start:preload": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.preload.dev.ts",
     "start:renderer": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack serve --config ./.erb/configs/webpack.config.renderer.dev.ts",
     "test": "jest",
-    "publish": "cross-env CRM_URL=https://127.0.0.1:8000 DEBUG=electron-builder GH_TOKEN=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 CSC_LINK=./self_signed_cert.pfx CSC_KEY_PASSWORD=Foresight_password_google  npm exec electron-builder -- --publish always --win"
+    "publish": "cross-env CRM_URL=https://crm.arceus.tech DEBUG=electron-builder GH_TOKEN=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  npm exec electron-builder -- --publish always --win"
   },
   "browserslist": [],
   "prettier": {
