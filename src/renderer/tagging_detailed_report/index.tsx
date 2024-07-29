@@ -1,10 +1,11 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useContext } from 'react';
 import { subDays, format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { columns, Performer } from './columns';
 import { DataTable } from './data-table';
 import QuerySection from './query-section';
 import getTaskResult from '../lib/get_task_result';
+import AuthContext from '../auth/AuthContext';
 
 interface Task {
   task_id: string;
@@ -18,7 +19,10 @@ export default function Index() {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   const [taskId, setTaskId] = React.useState<string>('');
-
+  const { authTokens } = useContext(AuthContext);
+  React.useEffect(() => {
+    console.log('isLoading changed:', isLoading);
+  }, [isLoading]);
   // Function to fetch data
 
   // Call fetchData when the component mounts
@@ -26,6 +30,7 @@ export default function Index() {
     if (!taskId) {
       return;
     }
+    setIsLoading(true);
     async function pollTaskResponse() {
       try {
         const data: Performer[] = await getTaskResult(taskId);
@@ -42,36 +47,41 @@ export default function Index() {
         setPerformerData(transformedData);
       } catch (error) {
         console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
       }
     }
 
     pollTaskResponse();
   }, [taskId]);
 
-  React.useEffect(() => {
-    console.log(isLoading);
-  }, [isLoading]);
-  const handleSearch = useCallback(async (dateS: DateRange | undefined) => {
-    console.log('Before setting loading state:', isLoading);
-    setIsLoading(true);
-    console.log(isLoading);
-    const startDate =
-      dateS && dateS.from ? format(dateS.from, 'yyyy-MM-dd') : ''; // Example start date
-    const endDate = dateS && dateS.to ? format(dateS.to, 'yyyy-MM-dd') : '';
-    try {
-      const response = await fetch(
-        `${process.env.CRM_URL}/api/reports/all-agents/?start_date=${startDate}&to_date=${endDate}`,
-      );
-      const data: Task = await response.json();
-      await setTaskId(data.task_id);
-    } catch (error) {
-      console.error('Error starting task:', error);
-    } finally {
-      console.log('Before setting loading state to false:', isLoading);
-      setIsLoading(false); // Set loading to false
-      console.log('Loading state set to false');
-    }
-  }, []);
+  const handleSearch = useCallback(
+    async (dateS: DateRange | undefined) => {
+      setIsLoading(true);
+      setPerformerData([]);
+      const startDate =
+        dateS && dateS.from ? format(dateS.from, 'yyyy-MM-dd') : ''; // Example start date
+      const endDate = dateS && dateS.to ? format(dateS.to, 'yyyy-MM-dd') : '';
+      try {
+        const response = await fetch(
+          `${process.env.CRM_URL}/api/reports/all-agents/?start_date=${startDate}&to_date=${endDate}`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${authTokens?.access}`,
+            },
+          },
+        );
+        const data: Task = await response.json();
+        await setTaskId(data.task_id);
+      } catch (error) {
+        console.error('Error starting task:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [authTokens?.access],
+  );
   React.useEffect(() => {
     if (!date) {
       return;
@@ -85,13 +95,7 @@ export default function Index() {
     <div className="container mx-auto py-10">
       <QuerySection date={date} setDate={setDate} handleSearch={handleSearch} />
 
-      {isLoading && (
-        <div className=" text-black font-normal text-xl py-5">Loading...</div>
-      )}
-
-      {performerData && performerData.length !== 0 && (
-        <DataTable columns={columns} data={performerData} />
-      )}
+      <DataTable columns={columns} data={performerData} isLoading={isLoading} />
     </div>
   );
 }

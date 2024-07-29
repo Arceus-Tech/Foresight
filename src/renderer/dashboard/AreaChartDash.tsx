@@ -57,7 +57,9 @@ const getCurrentMonthName = () => {
 };
 
 export default function AreaChartDash() {
-  const [chartData, setChartData] = useState([]);
+  const [chartData, setChartData] = useState<
+    { month: any; callBack: any; followUp: any }[]
+  >([]);
   const [chartDataTwo, setChartDataTwo] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [trendingUpValue, setTrendingUpValue] = useState(0);

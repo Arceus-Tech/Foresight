@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowUpRight,
@@ -30,6 +30,7 @@ import AreaChartDash from './AreaChartDash';
 import getTaskResult from '../lib/get_task_result';
 import Skeleton from '../components/ui/skeleton';
 import { useToast } from '../components/ui/use-toast';
+import AuthContext from '../auth/AuthContext';
 
 interface DataSummary {
   current: Record<string, unknown>;
@@ -52,6 +53,10 @@ interface ExtendedResponse extends Response {
   data: any; // Specify the correct type for `data` instead of `any` if possible
 }
 
+interface AuthTokens {
+  access: string;
+  refresh: string;
+}
 interface RecentDeposit {
   agent: {
     id: number;
@@ -129,24 +134,40 @@ export async function attemptFetch<T>(
   handleError: (error: Error) => void,
   queryParams: Record<string, any>,
   retriesLeft: number,
+  authTokens: AuthTokens | null,
+  logoutUser = () => {},
 ): Promise<void> {
   try {
     const queryString = new URLSearchParams(queryParams).toString();
-    const response = await fetch(`${url}?${queryString}`).then((res) => {
-      if (!res.ok) {
-        throw new Error(`Network response was not ok, status: ${res.status}`);
-      }
-      return res.json();
+    const response: any = await fetch(`${url}?${queryString}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authTokens?.access}`,
+      },
     });
 
-    if (response.task_id === undefined) {
+    // Check for network errors
+    if (!response.ok) {
+      if (response.status === 403) {
+        // Handle 403 status code specifically
+        logoutUser();
+      }
+      throw new Error(
+        `Network response was not ok, status: ${response.status}`,
+      );
+    }
+
+    const data = await response.json();
+
+    if (data.task_id === undefined) {
       handleError(new Error('Task ID not found in response'));
       return;
     }
 
-    const newData = (await getTaskResult(response.task_id)) as ExtendedResponse;
+    const newData = (await getTaskResult(data.task_id)) as ExtendedResponse; // Assuming getTaskResult is async
     setState(newData.data);
   } catch (error: any) {
+    // Log the error message for debugging
     if (retriesLeft > 1) {
       // Recursively attempt fetch again, decrementing retriesLeft
       await attemptFetch(
@@ -155,6 +176,8 @@ export async function attemptFetch<T>(
         handleError,
         queryParams,
         retriesLeft - 1,
+        authTokens,
+        logoutUser,
       );
     } else {
       // No retries left, handle error
@@ -167,12 +190,25 @@ export async function fetchData<T>(
   url: string,
   setState: React.Dispatch<React.SetStateAction<T>>,
   handleError: (error: Error) => void,
+  authTokens: AuthTokens | null,
+  logoutUser: () => void,
   queryParams: Record<string, any> = {},
-  maxRetries: number = 3, // Default maximum retries to 3
+  maxRetries: number = 3,
+  // Default maximum retries to 3
 ): Promise<void> {
-  await attemptFetch(url, setState, handleError, queryParams, maxRetries);
+  await attemptFetch(
+    url,
+    setState,
+    handleError,
+    queryParams,
+    maxRetries,
+    authTokens,
+    logoutUser,
+  );
 }
+
 export default function Dashboard() {
+  const { authTokens, logoutUser } = useContext(AuthContext);
   const [dataSummary, setDataSummary] = useState<DataSummary | null>(null);
   const [topPerformers, setTopPerformers] = useState<TopPerformer[]>();
   const [reacentDeposits, setRecentDeposits] = useState<RecentDeposit[]>();
@@ -192,6 +228,8 @@ export default function Dashboard() {
         `${process.env.CRM_URL}/api/performer/`,
         setTopPerformers,
         handleFetchError,
+        authTokens,
+        logoutUser,
         {
           count,
         },
@@ -207,6 +245,8 @@ export default function Dashboard() {
         `${process.env.CRM_URL}/api/latest-stats/`,
         setDataSummary,
         handleFetchError,
+        authTokens,
+        logoutUser,
         {
           count,
         },

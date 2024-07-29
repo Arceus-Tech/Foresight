@@ -43,6 +43,7 @@ export async function attemptFetch<T>(
       if (!res.ok) {
         throw new Error(`Network response was not ok, status: ${res.status}`);
       }
+
       return res.json();
     });
 

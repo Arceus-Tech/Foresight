@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import {
   ReactFlow,
   useNodesState,
@@ -9,6 +9,7 @@ import {
 import '@xyflow/react/dist/base.css';
 import dagre from '@dagrejs/dagre';
 import CustomNode from './CustomNode';
+import AuthContext from '../auth/AuthContext';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -16,13 +17,14 @@ const nodeTypes = {
 const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-const nodeWidth = 400;
-const nodeHeight = 100;
+const nodeWidth = 300;
+const nodeHeight = 200;
 
 const getLayoutedElements = (nodes: any[], edges: any[], direction = 'TB') => {
   const isHorizontal = direction === 'LR';
   dagreGraph.setGraph({ rankdir: direction });
 
+  // Assuming dagreGraph supports batch updates, if not, this step remains unchanged
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
   });
@@ -33,21 +35,18 @@ const getLayoutedElements = (nodes: any[], edges: any[], direction = 'TB') => {
 
   dagre.layout(dagreGraph);
 
+  // Optimized to reduce the mapping overhead by combining operations
   const newNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
-    const newNode = {
+    return {
       ...node,
       targetPosition: isHorizontal ? 'left' : 'top',
       sourcePosition: isHorizontal ? 'right' : 'bottom',
-      // We are shifting the dagre node position (anchor=center center) to the top left
-      // so it matches the React Flow node anchor point (top left).
       position: {
         x: nodeWithPosition.x - nodeWidth / 2,
         y: nodeWithPosition.y - nodeHeight / 2,
       },
     };
-
-    return newNode;
   });
 
   return { nodes: newNodes as never[], edges };
@@ -58,11 +57,17 @@ const proOptions = { hideAttribution: true };
 function Flow() {
   const [nodes, setNode, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const { authTokens } = useContext(AuthContext);
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const response1 = await fetch('http://127.0.0.1:8000/api/hierarchy/');
+        const response1 = await fetch(`${process.env.CRM_URL}/api/hierarchy/`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authTokens?.access}`,
+          },
+        });
         const data1 = await response1.json();
 
         // Process nodes (Optional: Include handles if needed)
@@ -92,7 +97,7 @@ function Flow() {
     };
 
     fetchData();
-  }, [setEdges, setNode]);
+  }, [authTokens?.access, setEdges, setNode]);
 
   return (
     <div className=" absolute h-screen w-full">

@@ -6,33 +6,49 @@ import MainLayout from './layout/main';
 import Dashboard from './dashboard';
 import TaggingDetailedReport from './tagging_detailed_report/index';
 import HierarchyFlow from './hierarchy-flow/HierachyFlow';
+import LoginPage from './auth/LoginPage';
+import { AuthProvider } from './auth/AuthContext';
 
 export default function App() {
   return (
     <Router>
       <Routes>
         <Route
+          path="/login"
+          element={
+            <AuthProvider>
+              <LoginPage />
+            </AuthProvider>
+          }
+        />
+        <Route
           path="/"
           element={
-            <MainLayout>
-              <Dashboard />
-            </MainLayout>
+            <AuthProvider>
+              <MainLayout>
+                <Dashboard />
+              </MainLayout>
+            </AuthProvider>
           }
         />
         <Route
           path="/historical-report"
           element={
-            <MainLayout>
-              <TaggingDetailedReport />
-            </MainLayout>
+            <AuthProvider>
+              <MainLayout>
+                <TaggingDetailedReport />
+              </MainLayout>
+            </AuthProvider>
           }
         />
         <Route
           path="/hierarchy-flow"
           element={
-            <MainLayout>
-              <HierarchyFlow />
-            </MainLayout>
+            <AuthProvider>
+              <MainLayout>
+                <HierarchyFlow />
+              </MainLayout>
+            </AuthProvider>
           }
         />
       </Routes>
