@@ -1,7 +1,7 @@
 import React, { useCallback, useContext } from 'react';
 import { subDays, format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
-import { columns, Performer } from './columns';
+import { columns, Campaign } from './columns';
 import { DataTable } from './data-table';
 import QuerySection from './query-section';
 import getTaskResult from '../lib/get_task_result';
@@ -11,7 +11,7 @@ interface Task {
   task_id: string;
 }
 export default function Index() {
-  const [performerData, setPerformerData] = React.useState<Performer[]>([]);
+  const [performerData, setPerformerData] = React.useState<Campaign[]>([]);
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: subDays(new Date(), 7),
     to: new Date(),
@@ -21,6 +21,9 @@ export default function Index() {
   const [taskId, setTaskId] = React.useState<string>('');
   const { authTokens, logoutUser } = useContext(AuthContext);
 
+  React.useEffect(() => {
+    console.log('isLoading changed:', isLoading);
+  }, [isLoading]);
   // Function to fetch data
 
   // Call fetchData when the component mounts
@@ -31,10 +34,10 @@ export default function Index() {
     setIsLoading(true);
     async function pollTaskResponse() {
       try {
-        const data: Performer[] = await getTaskResult(taskId);
+        const data: Campaign[] = await getTaskResult(taskId);
 
         const transformedData = Object.values(data).map((entry) => ({
-          agent: entry.agent,
+          campaign: entry.campaign,
           followUp: entry.followUp || 0,
           callBack: entry.callBack || 0,
           appointment: entry.appointment || 0,
@@ -63,7 +66,7 @@ export default function Index() {
       const endDate = dateS && dateS.to ? format(dateS.to, 'yyyy-MM-dd') : '';
       try {
         const response = await fetch(
-          `${process.env.CRM_URL}/api/reports/all-agents/?start_date=${startDate}&to_date=${endDate}`,
+          `${process.env.CRM_URL}/api/reports/all-campaigns/?start_date=${startDate}&to_date=${endDate}`,
           {
             headers: {
               'Content-Type': 'application/json',

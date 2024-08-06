@@ -10,14 +10,13 @@ export type Payment = {
   email: string;
 };
 
-export type Agent = {
+export type CampaignName = {
   id: number;
   name: string;
-  email: string;
 };
 
-export type Performer = {
-  agent: Agent;
+export type Campaign = {
+  campaign: CampaignName;
   followUp: number;
   callBack: number;
   appointment: number;
@@ -26,12 +25,14 @@ export type Performer = {
   totalDeposit: number;
 };
 
-export const columns: ColumnDef<Performer>[] = [
+export const columns: ColumnDef<Campaign>[] = [
   {
-    accessorKey: 'agent',
+    accessorKey: 'campaign',
     sortingFn: (rowA, rowB) => {
       // Custom sorting function
-      return rowA.original.agent.name.localeCompare(rowB.original.agent.name);
+      return rowA.original.campaign.name.localeCompare(
+        rowB.original.campaign.name,
+      );
     },
 
     header: ({ column }) => {
@@ -41,20 +42,19 @@ export const columns: ColumnDef<Performer>[] = [
           asChild={false}
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Agents
+          Campaign
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
     },
     cell: ({ row }) => {
-      const agent = row.getValue('agent') as Agent;
+      const campaign = row.getValue('campaign') as CampaignName;
       return (
         <div className="flex items-center">
           <div className="ml-4">
             <div className="text-sm font-medium text-gray-900">
-              {agent.name}
+              {campaign.name}
             </div>
-            <div className="text-sm text-gray-500">{agent.email}</div>
           </div>
         </div>
       );

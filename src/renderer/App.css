@@ -35,6 +35,8 @@
 
     --radius: 0.5rem;
 
+    
+
     --chart-1: 221.2 83.2% 53.3%;
     --chart-2: 212 95% 68%;
     --chart-3: 216 92% 60%;
@@ -92,4 +94,21 @@
       'rlig' 1,
       'calt' 1;
   }
+}
+
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #9d9d9d;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }

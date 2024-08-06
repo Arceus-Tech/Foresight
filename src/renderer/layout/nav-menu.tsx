@@ -19,12 +19,29 @@ const historicalReportItems: {
 }[] = [
   {
     title: 'Campaigns',
-    href: '/historical-report',
+    href: '/campaign/historical-report',
     description: 'View to see the performance of the campaigns that were run.',
   },
   {
     title: 'Employees',
     href: '/historical-report',
+    description: 'View to see the performance of the employees in the company.',
+  },
+];
+
+const targetAnalyticsItems: {
+  title: string;
+  href: string;
+  description: string;
+}[] = [
+  {
+    title: 'Users',
+    href: '/targets/users',
+    description: 'View to see the performance of the campaigns that were run.',
+  },
+  {
+    title: 'Team',
+    href: '/targets/teams',
     description: 'View to see the performance of the employees in the company.',
   },
 ];
@@ -152,6 +169,24 @@ export default function NavigationMenuBase() {
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>
+
+        <NavigationMenuItem>
+          <NavigationMenuTrigger>Target Analytics</NavigationMenuTrigger>
+          <NavigationMenuContent>
+            <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+              {targetAnalyticsItems.map((component) => (
+                <ListItem
+                  key={component.title}
+                  title={component.title}
+                  to={component.href}
+                >
+                  {component.description}
+                </ListItem>
+              ))}
+            </ul>
+          </NavigationMenuContent>
+        </NavigationMenuItem>
+
         <NavigationMenuItem>
           <Link to="/hierarchy-flow">
             <NavigationMenuLink className={navigationMenuTriggerStyle()}>

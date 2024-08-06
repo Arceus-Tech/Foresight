@@ -139,6 +139,8 @@ export async function attemptFetch<T>(
 ): Promise<void> {
   try {
     const queryString = new URLSearchParams(queryParams).toString();
+
+    console.log('queryString:', queryString);
     const response: any = await fetch(`${url}?${queryString}`, {
       headers: {
         'Content-Type': 'application/json',
@@ -164,7 +166,8 @@ export async function attemptFetch<T>(
       return;
     }
 
-    const newData = (await getTaskResult(data.task_id)) as ExtendedResponse; // Assuming getTaskResult is async
+    const newData = (await getTaskResult(data.task_id)) as ExtendedResponse;
+    console.log(newData.data); // Assuming getTaskResult is async
     setState(newData.data);
   } catch (error: any) {
     // Log the error message for debugging
