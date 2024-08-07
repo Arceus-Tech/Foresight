@@ -31,6 +31,7 @@ import getTaskResult from '../lib/get_task_result';
 import Skeleton from '../components/ui/skeleton';
 import { useToast } from '../components/ui/use-toast';
 import AuthContext from '../auth/AuthContext';
+import WeekData from './WeekData';
 
 interface DataSummary {
   current: Record<string, unknown>;
@@ -512,6 +513,10 @@ export default function Dashboard() {
       </div>
       <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
         <AreaChartDash />
+
+        <div className=" xl:col-span-2">
+          <WeekData />
+        </div>
       </div>
     </main>
   );

@@ -92,13 +92,14 @@ export default function Index() {
         setIsLoading(false);
       }
     },
-    [authTokens?.access],
+    [authTokens?.access, logoutUser],
   );
   React.useEffect(() => {
     if (!date) {
       return;
     }
     handleSearch(date);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Empty dependency array means this effect runs once on mount
