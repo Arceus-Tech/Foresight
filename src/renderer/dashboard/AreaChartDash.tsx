@@ -18,6 +18,7 @@ import {
 
 import { fetchData } from '../lib/get_task_result';
 import { useToast } from '../components/ui/use-toast';
+import Skeleton from '../components/ui/skeleton';
 
 const chartConfig = {
   callBack: {
@@ -156,13 +157,6 @@ export default function AreaChartDash() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (chartData.length === 0) {
-    return <div>No data available.</div>;
-  }
   return (
     <Card>
       <CardHeader>
@@ -172,53 +166,60 @@ export default function AreaChartDash() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
-          <AreaChart
-            accessibilityLayer
-            data={chartData}
-            margin={{
-              left: 12,
-              right: 12,
-            }}
+        {chartData.length === 0 || !chartData ? (
+          <Skeleton className="aspect-auto h-[250px] w-full" />
+        ) : (
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-[250px] w-full"
           >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => value.slice(0, 3)}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={
-                <ChartTooltipContent
-                  indicator="dot"
-                  hideLabel={false}
-                  hideIndicator={false}
-                  nameKey=""
-                  labelKey=""
-                />
-              }
-            />
-            <Area
-              dataKey="followUp"
-              type="natural"
-              fill="var(--color-followUp)"
-              fillOpacity={0.4}
-              stroke="var(--color-followUp)"
-              stackId="a"
-            />
-            <Area
-              dataKey="callBack"
-              type="natural"
-              fill="var(--color-callBack)"
-              fillOpacity={0.4}
-              stroke="var(--color-callBack)"
-              stackId="a"
-            />
-          </AreaChart>
-        </ChartContainer>
+            <AreaChart
+              accessibilityLayer
+              data={chartData}
+              margin={{
+                left: 12,
+                right: 12,
+              }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={(value) => value.slice(0, 3)}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    indicator="dot"
+                    hideLabel={false}
+                    hideIndicator={false}
+                    nameKey=""
+                    labelKey=""
+                  />
+                }
+              />
+              <Area
+                dataKey="followUp"
+                type="natural"
+                fill="var(--color-followUp)"
+                fillOpacity={0.4}
+                stroke="var(--color-followUp)"
+                stackId="a"
+              />
+              <Area
+                dataKey="callBack"
+                type="natural"
+                fill="var(--color-callBack)"
+                fillOpacity={0.4}
+                stroke="var(--color-callBack)"
+                stackId="a"
+              />
+            </AreaChart>
+          </ChartContainer>
+        )}
       </CardContent>
       <CardFooter>
         <div className="flex w-full items-start gap-2 text-sm">

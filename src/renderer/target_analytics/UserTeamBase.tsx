@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import UserTargetsChart from './UserTargetsChart';
-import { fetchData } from '../dashboard';
+import { fetchData } from '../dashboard/utils';
 import { useToast } from '../components/ui/use-toast';
 import AuthContext from '../auth/AuthContext';
 
