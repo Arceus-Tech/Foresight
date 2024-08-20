@@ -54,7 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const username = e.currentTarget.username.value;
       const password = e.currentTarget.password.value;
 
-      const response = await fetch('http://127.0.0.1:8000/api/token/', {
+      const response = await fetch(`${process.env.CRM_URL}/api/token/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,13 +87,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const updateToken = async () => {
       if (!authTokens) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/token/refresh/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${process.env.CRM_URL}/api/token/refresh/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ refresh: authTokens.refresh }),
         },
-        body: JSON.stringify({ refresh: authTokens.refresh }),
-      });
+      );
 
       const data = await response.json();
       if (response.status === 200 && data) {

@@ -62,7 +62,7 @@ export default function AreaChartDash() {
     { month: any; callBack: any; followUp: any }[]
   >([]);
   const [chartDataTwo, setChartDataTwo] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [trendingUpValue, setTrendingUpValue] = useState(0);
   const [monthRange, setMonthRange] = useState({ start: '', end: '' });
   const { toast } = useToast();
